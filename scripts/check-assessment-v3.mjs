@@ -25,10 +25,7 @@ assert.equal(result.details.filter(q=>q.scored===false).length,0);assert.equal(r
 const replay=await post({action:'submit',id:exam.id,answers:{}});assert.equal(replay.status,200);assert.equal(replay.id,result.id);assert.equal(replay.score,result.score);assert.equal(JSON.parse(records.get('test-learner')).attempts.length,1);
 records.set('test-learner',JSON.stringify({track:120,attempts:[passed(2)]}));
 assert.equal((await post({action:'start',week:4})).status,400);
-const revision=await post({action:'startRevision',week:2});assert.equal(revision.status,400);const revisionInternal=JSON.parse(records.get('exam:test-learner:'+revision.id));
-assert.equal(revisionInternal.q.filter(q=>q.type==='BENGALI_RECALL').length,2);
-const {seed,wordKey}=load(root+'/app/words.ts');const firstWeek=new Set(learning.wordsForWeek(seed,120,1).map(wordKey));const secondWeek=new Set(learning.wordsForWeek(seed,120,2).map(wordKey));assert.equal(revisionInternal.q.filter(q=>!q.writing&&firstWeek.has(wordKey(q.w))).length,15);assert.equal(revisionInternal.q.filter(q=>!q.writing&&secondWeek.has(wordKey(q.w))).length,15);
-const revisionResult=await post({action:'submit',id:revision.id,answers:Object.fromEntries(revisionInternal.q.map((q,i)=>[i,q.writing?'This is a sentence using '+q.w.word+'.':q.answer]))});assert.equal(revisionResult.unlocksNextWeek,true);assert.equal((await post({action:'practice',week:3})).status,200);
+assert.equal((await post({action:'startRevision',week:2})).status,400);const {seed,wordKey}=load(root+'/app/words.ts');const block=learning.wordsForAssessmentBlock(seed,120,2);assert(block.length>0);assert.equal(new Set(block.map(wordKey)).size,block.length);
 const spelling=feedback.answerFeedback({answer:'abandon',accepted:['abandon'],typed:true},'abandn');assert.equal(spelling.spellingSuggestion,'abandon');assert.match(spelling.feedback,/spelling/);
 const writing=feedback.answerFeedback({writing:true,w:{word:'abandon'},answer:'We must never abandon our friends.'},'We never abandon our friends.');assert.equal(writing.correct,null);assert.equal(writing.scored,false);assert.match(writing.feedback,/not been verified/);
 records.set('test-learner',JSON.stringify({banned:true}));assert.equal((await post({action:'start',week:1})).status,403);

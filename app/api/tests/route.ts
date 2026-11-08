@@ -17,8 +17,8 @@ export async function POST(req:Request){
   if(['start','practice','startRevision','practiceRevision'].includes(d.action)){
    const week=Number(d.week),revision=d.action.endsWith('Revision'),practice=d.action.startsWith('practice');
    const words=await vocabulary(u.userId),track=state.track||120;
-   const config=await readRecord('test-config',{});const options=config[String(week)+(revision?':Revision':'')]||{};if(options.enabled===false)throw Error('This assessment has been disabled by the administrator.');
-   const assigned=Number(state.assignedTest?.week)===week&&state.assignedTest?.kind===(revision?'Revision':'Weekly');
+   const config=await readRecord('test-config',{});const options=config[String(week)]||config[String(week)+(revision?':Revision':'')]||{};if(options.enabled===false)throw Error('This assessment has been disabled by the administrator.');
+   const assigned=Number(state.assignedTest?.week)===week&&['Biweekly','Weekly'].includes(state.assignedTest?.kind);
    if(!Number.isInteger(week)||week<2||week%2!==0||week>Math.ceil(track/14)*2)throw Error('Choose a valid two-week assessment block (Week 2, 4, 6…).');
    if(revision)throw Error('Separate revision tests are no longer used. Each assessment covers the previous 14 learning days.');
    if(!assigned&&week>unlockedWeek(state.attempts))throw Error('Pass the previous two-week assessment at 90% to unlock this block.');
@@ -29,9 +29,7 @@ export async function POST(req:Request){
    const duration=Math.max(60,Math.min(7200,Number(options.timeSeconds)||TEST_SECONDS));
    const passPercent=Math.max(1,Math.min(100,Number(options.passPercent)||PASS_PERCENT));
    const writingCount=5;const scoringVersion='gemini-writing-v1';if(!practice){const status=await aiStatus();if(!status.enabled||!status.configured)throw new AssessmentUnavailable('AI-scored tests need the administrator to connect Gemini first. You can view the sample mock while setup is pending.');}
-   const objective=revision?[...makeQuestions(wordsForWeek(words,track,week-1,state),Math.floor(count/2),1),
-    ...makeQuestions(wordsForWeek(words,track,week,state),count-Math.floor(count/2),1)]
-    :makeQuestions(pool,count);
+   const objective=makeQuestions(pool,count);
    if(objective.length!==count)throw Error('This assessment needs '+count+' distinct objective questions in the selected vocabulary. Reduce the question count or add more vocabulary.');
    const custom=await readRecord('custom-questions:'+week+(revision?':Revision':''),[]);
    const authored=custom.flatMap((item:any)=>{

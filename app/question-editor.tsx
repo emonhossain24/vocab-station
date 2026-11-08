@@ -14,7 +14,7 @@ const questionTypes=[
 ];
 const empty=()=>({id:'',wordId:'',prompt:'',type:'ADMIN_CONTEXT_MCQ',options:['','','',''],answer:'',band:'',hint:'',explanation:'',required:false});
 export default function QuestionEditor({words}:{words:Word[]}){
- const [kind,setKind]=useState('Weekly'),[week,setWeek]=useState(1),[list,setList]=useState<any[]>([]),[edit,setEdit]=useState<any>(empty()),[search,setSearch]=useState(''),[status,setStatus]=useState(''),[loading,setLoading]=useState(false);
+ const [kind,setKind]=useState('Biweekly'),[week,setWeek]=useState(1),[list,setList]=useState<any[]>([]),[edit,setEdit]=useState<any>(empty()),[search,setSearch]=useState(''),[status,setStatus]=useState(''),[loading,setLoading]=useState(false);
  const filtered=useMemo(()=>words.filter(w=>(w.word+' '+w.bengali_meaning).toLowerCase().includes(search.toLowerCase())).slice(0,50),[words,search]);
  const typed=['FILL_BLANK','SHORT_ANSWER','WORD_MEANING'].includes(edit.type);
  const multi=edit.type==='MULTI_SELECT';
@@ -42,7 +42,7 @@ export default function QuestionEditor({words}:{words:Word[]}){
   <h2>Mock question bank · all question types</h2>
   <p>Publish questions, edit answers, choose mandatory or optional questions and set vocabulary-specific band labels. Admin questions replace generated questions in new attempts.</p>
   <div className="admin-edit-grid">
-   <label>Assessment<select value={kind} onChange={e=>setKind(e.target.value)}><option>Weekly</option><option>Revision</option></select></label><label>Week<input min={1} max={26} type="number" value={week} onChange={e=>setWeek(Math.max(1,Math.min(26,Number(e.target.value)||1)))}/></label>
+   <label>Assessment<select value={kind} onChange={e=>setKind(e.target.value)}><option>Biweekly</option></select></label><label>Week<input min={1} max={26} type="number" value={week} onChange={e=>setWeek(Math.max(1,Math.min(26,Number(e.target.value)||1)))}/></label>
    <label>Question type<select value={edit.type} onChange={e=>changeType(e.target.value)}>{questionTypes.map(([v,t])=><option value={v} key={v}>{t}</option>)}</select></label>
   </div>
   <button className="outline" disabled={loading} onClick={()=>void call('listQuestions')}>Load saved {kind.toLowerCase()} questions for Week {week}</button>

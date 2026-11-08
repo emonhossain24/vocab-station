@@ -2,7 +2,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {Check,Clock,Keyboard,Volume2,ArrowRight,RotateCcw} from 'lucide-react';
 import {blankFor,type Word} from './words';
-import SentenceWriter from './sentence-writer';
 import {examplesFor,typingSentences,resultMetrics} from './learning';
 type Entry={kind:string;word:string;answer:string;seconds:number;wpm:number;accuracy:number;correct:boolean;date:string};
 export default function PracticeStudio({word,pool,demo,title,labels={},speak,onResult}:{word:Word;pool:Word[];demo:boolean;title?:string;labels?:Record<string,string>;speak:(text:string)=>void;onResult:(entry:Entry)=>void}){
@@ -16,6 +15,5 @@ export default function PracticeStudio({word,pool,demo,title,labels={},speak,onR
  <form onSubmit={e=>{e.preventDefault();check()}}><label className="answer-label">{typing?'Type here':'Your English word'}<textarea rows={typing?3:1} autoComplete="off" spellCheck={false} value={value} readOnly={!!answer} placeholder={typing?'Start typing to begin the timer…':'Write your answer…'} onChange={e=>{if(began.current===null&&e.target.value.length)began.current=performance.now();setValue(e.target.value)}}/></label><div className="practice-controls"><button className="primary" disabled={!value.trim()||!!answer} type="submit"><Check size={17}/>{labels.checkAnswer||'Check answer'}</button><button className="outline" type="button" onClick={reset}><RotateCcw size={16}/>{labels.tryAgain||'Try again'}</button>{typing&&mode!=='Word typing'&&<button className="outline" type="button" disabled={demo&&at>=2} onClick={()=>{setAt(v=>(v+1)%Math.max(1,bank.length));reset()}}>{labels.nextSentence||'Next sentence'}<ArrowRight size={17}/></button>}</div></form>
  {answer&&<div className={'practice-result '+(answer.correct?'correct':'retry')} role="status"><strong>{answer.correct?'Correct. Nicely done!':'Keep practising.'}</strong><p>Your answer: <b>{answer.submitted}</b></p>{!answer.correct&&<p>Expected: {answer.expected}</p>}<div className="typing-metrics"><span><b>{answer.seconds}s</b>Answer time</span><span><b>{answer.wpm}</b>WPM</span><span><b>{answer.accuracy}%</b>Accuracy</span></div><p className="muted">{demo?'Demo result only. Your answer stays visible; no learner progress is saved.':'Your first submitted answer and completion time are saved in your practice history.'}</p></div>}
  {typing&&bank.length>0&&<details className="sentence-bank"><summary>Explore the {bank.length}-sentence practice set</summary><ol>{bank.map((e,i)=><li key={e.id+':'+i}><span>{e.english}</span><small lang="bn">{e.bengali}</small><button className="text-button" disabled={demo&&i>2} onClick={()=>{setAt(i);reset()}}>{demo&&i>2?'Full release':'Practise sentence'}</button></li>)}</ol></details>}
- <SentenceWriter word={word} onSave={onResult}/>
  </section>
 }

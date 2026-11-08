@@ -7,12 +7,12 @@ function load(file){if(cache.has(file))return cache.get(file);if(file.endsWith('
 const root=process.cwd(),learning=load(root+'/app/learning.ts'),api=load(root+'/app/api/tests/route.ts'),feedback=load(root+'/app/answer-feedback.ts');
 assert.equal(learning.PASS_PERCENT,90);assert.equal(learning.TEST_SECONDS,900);
 const passed=(week,kind='Weekly')=>({week,kind,score:27,total:30});
-assert.equal(learning.unlockedWeek([{...passed(2),score:26}]),2);
-assert.equal(learning.unlockedWeek([passed(2)]),4);
+assert.equal(learning.unlockedWeek([{...passed(1),score:26}]),1);
+assert.equal(learning.unlockedWeek([passed(1)]),2);
+assert.equal(learning.unlockedWeek([passed(1),passed(2)]),2);
+assert.equal(learning.revisionDue([passed(1),passed(2)]),2);
 assert.equal(learning.unlockedWeek([passed(2),passed(4)]),6);
-assert.equal(learning.revisionDue([passed(2),passed(4)]),null);
-assert.equal(learning.unlockedWeek([passed(2),passed(4)]),6);
-assert.equal(learning.unlockedWeek([passed(2),passed(4),passed(6)]),8);
+assert.equal(learning.unlockedWeek([passed(1),passed(2),passed(2,'Revision')]),3);
 const request=d=>new Request('https://test.invalid/api/tests',{method:'POST',body:JSON.stringify(d),headers:{'Content-Type':'application/json'}});
 async function post(d){const response=await api.POST(request(d));return{status:response.status,...await response.json()};}
 assert.equal((await post({action:'start',week:2})).status,400);
@@ -23,14 +23,14 @@ const internal=JSON.parse(records.get('exam:test-learner:'+exam.id));const answe
 const result=await post({action:'submit',id:exam.id,answers});assert.equal(result.status,200);assert.equal(result.total,35);assert.equal(result.score,35);assert.equal(result.passed,true);assert.equal(result.unlocksNextWeek,false);
 assert.equal(result.details.filter(q=>q.scored===false).length,0);assert.equal(result.writingScore,5);assert(result.details.filter(q=>q.writing).every(q=>q.writingFeedback.grammarVerified===false));
 const replay=await post({action:'submit',id:exam.id,answers:{}});assert.equal(replay.status,200);assert.equal(replay.id,result.id);assert.equal(replay.score,result.score);assert.equal(JSON.parse(records.get('test-learner')).attempts.length,1);
-records.set('test-learner',JSON.stringify({track:120,attempts:[passed(2)]}));
-assert.equal((await post({action:'start',week:4})).status,400);
-assert.equal((await post({action:'startRevision',week:2})).status,400);const {seed,wordKey}=load(root+'/app/words.ts');const block=learning.wordsForAssessmentBlock(seed,120,2);assert(block.length>0);assert.equal(new Set(block.map(wordKey)).size,block.length);
+records.set('test-learner',JSON.stringify({track:120,attempts:[passed(1)]}));
+assert.equal((await post({action:'start',week:2})).status,400);
+assert.equal((await post({action:'startRevision',week:2})).status,400);const {seed,wordKey}=load(root+'/app/words.ts');assert(learning.wordsForWeek(seed,120,1).length>0);assert(learning.wordsForWeek(seed,120,2).length>0);
 const spelling=feedback.answerFeedback({answer:'abandon',accepted:['abandon'],typed:true},'abandn');assert.equal(spelling.spellingSuggestion,'abandon');assert.match(spelling.feedback,/spelling/);
 const writing=feedback.answerFeedback({writing:true,w:{word:'abandon'},answer:'We must never abandon our friends.'},'We never abandon our friends.');assert.equal(writing.correct,null);assert.equal(writing.scored,false);assert.match(writing.feedback,/not been verified/);
 records.set('test-learner',JSON.stringify({banned:true}));assert.equal((await post({action:'start',week:1})).status,403);
 user=null;assert.equal((await post({action:'start',week:1})).status,401);
-console.log('Assessment v3 passed: 90% boundary, pair revision gates, 30 objective + 5 AI-scored writing, 15-minute server timer, daily completion required for weekly start, practice preview available, answer secrecy, atomic replay guard, spelling feedback, honest sentence feedback, ban and auth.');
+console.log('Assessment v3 passed: 90% boundary, weekly and mandatory pair revision gates, 30 objective + 5 AI-scored writing, 15-minute server timer, I know this completion required for weekly start, practice preview available, answer secrecy, atomic replay guard, spelling feedback, honest sentence feedback, ban and auth.');
 
 user={userId:'submission-check',email:'submission@example.invalid'};records.set(user.userId,JSON.stringify({track:120,attempts:[]}));const blankExam=await post({action:'practice',week:1});const blank=await post({action:'submit',id:blankExam.id,answers:{}});assert.equal(blank.status,200);assert.equal(blank.score,0);assert.equal(blank.total,35);assert.equal(blank.passed,false);assert.equal(blank.unlocksNextWeek,false);assert.equal(blank.details.filter(q=>!q.chosen).length,35);const retryExam=await post({action:'practice',week:1});failNextBatch=true;assert.equal((await post({action:'submit',id:retryExam.id,answers:{}})).status,400);assert.equal(JSON.parse(records.get('exam:'+user.userId+':'+retryExam.id)).used,false);assert.equal((await post({action:'submit',id:retryExam.id,answers:{}})).status,200);const before=JSON.parse(records.get(user.userId)).attempts.length;assert.equal((await post({action:'submit',id:retryExam.id,answers:{}})).status,200);assert.equal(JSON.parse(records.get(user.userId)).attempts.length,before);console.log('Blank submission, transactional storage failure recovery, idempotent result retrieval and no duplicate attempts passed.');
 

@@ -4,7 +4,7 @@ import {env} from 'cloudflare:workers';
 import {auth,readRecord,writeRecord,vocabulary} from '../../data-server';
 import {makeQuestions,sentenceQuestions} from '../../assessment';
 import {answerFeedback} from '../../answer-feedback';
-import {wordsForWeek,wordsForAssessmentBlock,unlockedWeek,passedAssessment,TEST_SECONDS,PASS_PERCENT,difficulty} from '../../learning';
+import {wordsForWeek,unlockedWeek,passedAssessment,TEST_SECONDS,PASS_PERCENT,difficulty} from '../../learning';
 import {weekReady} from '../../daily-progress';
 import {wordKey} from '../../words';
 export async function POST(req:Request){
@@ -17,21 +17,21 @@ export async function POST(req:Request){
   if(['start','practice','startRevision','practiceRevision'].includes(d.action)){
    const week=Number(d.week),revision=d.action.endsWith('Revision'),practice=d.action.startsWith('practice');
    const words=await vocabulary(u.userId),track=state.track||120;
-   const config=await readRecord('test-config',{});const options=config[String(week)]||config[String(week)+(revision?':Revision':'')]||{};if(options.enabled===false)throw Error('This assessment has been disabled by the administrator.');
-   const assigned=Number(state.assignedTest?.week)===week&&['Biweekly','Weekly'].includes(state.assignedTest?.kind);
-   if(!Number.isInteger(week)||week<2||week%2!==0||week>Math.ceil(track/14)*2)throw Error('Choose a valid two-week assessment block (Week 2, 4, 6…).');
-   if(revision)throw Error('Separate revision tests are no longer used. Each assessment covers the previous 14 learning days.');
-   if(!assigned&&week>unlockedWeek(state.attempts))throw Error('Pass the previous two-week assessment at 90% to unlock this block.');
-   const pool=wordsForAssessmentBlock(words,track,week,state);
+   const config=await readRecord('test-config',{});const options=config[String(week)+(revision?':Revision':'')]||{};if(options.enabled===false)throw Error('This assessment has been disabled by the administrator.');
+   const assigned=Number(state.assignedTest?.week)===week&&state.assignedTest?.kind===(revision?'Revision':'Weekly');
+   if(!Number.isInteger(week)||week<1||week>Math.ceil(track/7))throw Error('Choose a valid assessment week.');
+   if(revision){if(week%2!==0)throw Error('Revision checkpoints cover a pair of weeks.');if(!assigned&&(!passedAssessment(state.attempts,'Weekly',week-1)||!passedAssessment(state.attempts,'Weekly',week)))throw Error('Pass both weekly tests at 90% before their revision checkpoint.');}
+   else if(!assigned&&week>unlockedWeek(state.attempts))throw Error('Pass the preceding weekly tests and any required revision checkpoint at 90% to unlock this week.');
+   const pool=revision?[...wordsForWeek(words,track,week-1,state),...wordsForWeek(words,track,week,state)]:wordsForWeek(words,track,week,state);
    if(!pool.length)throw Error('No vocabulary is assigned to this assessment.');
-   if(!practice&&!assigned&&!weekReady(words,state,week))throw Error('Mark every assigned vocabulary word “I know this” across all 14 days before taking this assessment. Sentence writing and recall practice are optional.');
+   if(!practice&&!revision&&!assigned&&!weekReady(words,state,week))throw Error('Mark every assigned word “I know this” across all 7 days before taking the weekly test. Sentence writing and recall practice are optional.');
    const count=Math.max(5,Math.min(60,Number(options.questionCount)||30));
    const duration=Math.max(60,Math.min(7200,Number(options.timeSeconds)||TEST_SECONDS));
    const passPercent=Math.max(1,Math.min(100,Number(options.passPercent)||PASS_PERCENT));
    const writingCount=5;const scoringVersion='gemini-writing-v1';if(!practice){const status=await aiStatus();if(!status.enabled||!status.configured)throw new AssessmentUnavailable('AI-scored tests need the administrator to connect Gemini first. You can view the sample mock while setup is pending.');}
-   const objective=makeQuestions(pool,count);
+   const objective=revision?[...makeQuestions(wordsForWeek(words,track,week-1,state),Math.floor(count/2),1),...makeQuestions(wordsForWeek(words,track,week,state),count-Math.floor(count/2),1)]:makeQuestions(pool,count);
    if(objective.length!==count)throw Error('This assessment needs '+count+' distinct objective questions in the selected vocabulary. Reduce the question count or add more vocabulary.');
-   const custom=await readRecord('custom-questions:'+week,[]);
+   const custom=await readRecord('custom-questions:'+week+(revision?':Revision':''),[]);
    const authored=custom.flatMap((item:any)=>{
     const w=pool.find(x=>wordKey(x)===item.wordId);
     if(!w)return [];
@@ -44,9 +44,9 @@ export async function POST(req:Request){
       multi,explanation:item.explanation}];
    });
    const selected=authored.length?[...authored.slice(0,count),...objective.filter((q:any)=>!authored.some((x:any)=>x.prompt===q.prompt)).slice(0,count-authored.length)]:objective;
-   const q=[...selected.map((question:any)=>({...question,required:options.requireAll===true||question.required===true})),...sentenceQuestions(pool,writingCount).map(q=>({...q,required:options.requireAll===true}))],id=crypto.randomUUID(),kind=practice?'Practice':'Biweekly';
-   await writeRecord('exam:'+u.userId+':'+id,{q,week,kind,revision,scoringVersion,objectiveCount:count,writingCount,started:Date.now(),timeSeconds:duration,passPercent,showAnswers:options.showAnswers!==false,title:options.title||`Weeks ${week-1}–${week} assessment`,used:false});await writeRecord(u.userId,{...state,assessmentSessions:[...(state.assessmentSessions||[]),{id,week,kind,date:new Date().toISOString()}].slice(-30)});
-   return Response.json({id,kind,revision:false,title:options.title||`Weeks ${week-1}–${week} assessment`,seconds:duration,passPercent,writingCount,scoringVersion,objectiveQuestions:count,scoredQuestions:count+writingCount,questions:q.map(({w,answer,accepted,explanation,...safe})=>safe)});
+   const q=[...selected.map((question:any)=>({...question,required:options.requireAll===true||question.required===true})),...sentenceQuestions(pool,writingCount).map(q=>({...q,required:options.requireAll===true}))],id=crypto.randomUUID(),kind=practice?'Practice':revision?'Revision':'Weekly';
+   await writeRecord('exam:'+u.userId+':'+id,{q,week,kind,revision,scoringVersion,objectiveCount:count,writingCount,started:Date.now(),timeSeconds:duration,passPercent,showAnswers:options.showAnswers!==false,title:options.title||`Week ${week} ${revision?'revision':'test'}`,used:false});await writeRecord(u.userId,{...state,assessmentSessions:[...(state.assessmentSessions||[]),{id,week,kind,date:new Date().toISOString()}].slice(-30)});
+   return Response.json({id,kind,revision,title:options.title||`Week ${week} ${revision?'revision':'test'}`,seconds:duration,passPercent,writingCount,scoringVersion,objectiveQuestions:count,scoredQuestions:count+writingCount,questions:q.map(({w,answer,accepted,explanation,...safe})=>safe)});
   }
   if(d.action==='submit'){
    const key='exam:'+u.userId+':'+String(d.id),exam=await readRecord(key);
@@ -65,7 +65,7 @@ export async function POST(req:Request){
    const attempt={id:String(d.id),date:new Date().toISOString(),kind:exam.kind||'Weekly',revision:!!exam.revision,week:exam.week,score,total,passPercentApplied:Number(exam.passPercent||PASS_PERCENT),scoringVersion:exam.scoringVersion||'legacy-objective',objectiveScore:details.filter((q:any)=>!q.writing&&q.correct).length,writingScore:aiScored?details.filter((q:any)=>q.writing).reduce((sum:number,q:any)=>sum+Number(q.points||0),0):0,writingTotal:aiScored?exam.writingCount:0,writingResponses:details.filter((q:any)=>q.writing&&q.chosen.trim()).length,passed,unlocksNextWeek:false};
    const latest=await readRecord(u.userId,{});const attempts=[...(latest.attempts||[]).filter((a:any)=>a.id!==attempt.id),attempt];attempt.unlocksNextWeek=exam.kind!=='Practice'&&unlockedWeek(attempts)>unlockedWeek(latest.attempts);
    const review=[...new Set([...(latest.review||[]),...details.filter((q:any)=>q.scored&&!q.correct).map((q:any)=>wordKey(q.w))])];
-   const words=await vocabulary(u.userId),coveredVocabulary=wordsForAssessmentBlock(words,latest.track||120,exam.week,latest).length;
+   const words=await vocabulary(u.userId),coveredVocabulary=(exam.revision?[...wordsForWeek(words,latest.track||120,exam.week-1,latest),...wordsForWeek(words,latest.track||120,exam.week,latest)]:wordsForWeek(words,latest.track||120,exam.week,latest)).length;
    const response={...attempt,details,coveredVocabulary,writingNotice:aiScored?'The total includes 30 objective questions and 5 AI-scored writing tasks. AI feedback can make mistakes.':'Legacy test: writing feedback does not affect the objective score.'};
    // Atomically consume the session so simultaneous submits cannot create duplicate attempts.
    const claim=await env.DB!.prepare("UPDATE records SET data=json_set(data,'$.used',json('true')) WHERE id=? AND json_extract(data,'$.used')=0").bind(key).run();

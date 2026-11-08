@@ -3,7 +3,7 @@ export const TEST_SECONDS=900;
 export const PASS_PERCENT=90;
 export function passedAssessment(attempts:any[]=[],kind='Weekly',week=1){return attempts.some(a=>a.kind===kind&&a.week===week&&(a.adminOverride===true||(a.adminOverride!==false&&a.total>0&&a.score/a.total*100>=Math.max(1,Math.min(100,Number(a.passPercentApplied)||PASS_PERCENT)))));}
 /** A passed assessment unlocks the next 14-day vocabulary block. */
-export function unlockedWeek(attempts:any[]=[]){let week=2;while(passedAssessment(attempts,'Weekly',week)||passedAssessment(attempts,'Biweekly',week))week+=2;return week;}
+export function unlockedWeek(attempts:any[]=[]){let week=2;while(passedAssessment(attempts,'Biweekly',week)||passedAssessment(attempts,'Weekly',week))week+=2;return week;}
 export function revisionDue(attempts:any[]=[]){const week=unlockedWeek(attempts);return week%2===0&&passedAssessment(attempts,'Weekly',week)&&!passedAssessment(attempts,'Revision',week)?week:null;}
 export function wordsForWeek(words:Word[],track:number,week:number,state:any={}){return words.filter((w,i)=>Math.ceil((Number(state.adminWordDays?.[wordKey(w)])||assignedDay(i,track,words.length))/7)===week);}
 /** One assessment covers two completed seven-day learning weeks. `week` is the ending week number (2, 4, 6…). */

@@ -32,8 +32,8 @@ export default function AdminManagement({users,words,onRefresh,onSettings}:{
  const [busy,setBusy]=useState(false);
  const [day,setDay]=useState(1),[mode,setMode]=useState('allow');
  const [bulkText,setBulkText]=useState(''),[editExampleIndex,setEditExampleIndex]=useState<number|null>(null),[extraEnglish,setExtraEnglish]=useState(''),[extraBengali,setExtraBengali]=useState(''),[assignDay,setAssignDay]=useState(1),[query,setQuery]=useState(''),[wordId,setWordId]=useState('');
- const [week,setWeek]=useState(2),[assessmentKind,setAssessmentKind]=useState('Biweekly');
- const [test,setTest]=useState<any>({enabled:true,questionCount:30,timeSeconds:900,passPercent:90,writingCount:5,requireAll:false,showAnswers:true,title:'Weeks 1–2 assessment'});
+ const [week,setWeek]=useState(1),[assessmentKind,setAssessmentKind]=useState('Weekly');
+ const [test,setTest]=useState<any>({enabled:true,questionCount:30,timeSeconds:900,passPercent:90,writingCount:5,requireAll:false,showAnswers:true,title:'Week 1 test'});
  const learner=users.find(u=>u.id===selected);
  const candidates=useMemo(()=>words.filter(w=>(w.word+' '+w.bengali_meaning).toLowerCase().includes(query.toLowerCase())).slice(0,35),[words,query]);
 
@@ -47,7 +47,7 @@ export default function AdminManagement({users,words,onRefresh,onSettings}:{
   }catch(e:any){setStatus(e.message||'Cannot load administrator settings');}
  }
  useEffect(()=>{void load()},[]);
- useEffect(()=>{setTest({enabled:true,questionCount:30,timeSeconds:900,passPercent:90,writingCount:5,requireAll:false,showAnswers:true,title:'Weeks '+(week-2+1)+'–'+week+' assessment',...(tests[String(week)+(assessmentKind==='Revision'?':Revision':'')]||{})})},[week,tests,assessmentKind]);
+ useEffect(()=>{setTest({enabled:true,questionCount:30,timeSeconds:900,passPercent:90,writingCount:5,requireAll:false,showAnswers:true,title:'Week '+week+' '+assessmentKind.toLowerCase()+' test',...(tests[String(week)+(assessmentKind==='Revision'?':Revision':'')]||{})})},[week,tests,assessmentKind]);
  useEffect(()=>{if(learner){setDay(1);setAssignDay(1)}},[selected]);
  async function action(payload:any,done?:()=>void){
   if(busy)return;setBusy(true);setStatus('Saving…');
@@ -166,10 +166,10 @@ export default function AdminManagement({users,words,onRefresh,onSettings}:{
   </section>
 
   <section className="panel settings-panel admin-controls" id="admin-tests">
-   <h2>Two-week assessment policy</h2>
-   <p>Configure the assessment taken after each 14-day vocabulary block. Learners unlock the next block after passing.</p>
+   <h2>Weekly mock and revision policy</h2>
+   <p>Configure weekly tests and the mandatory revision test after every two weekly tests.</p>
    <div className="admin-edit-grid">
-    <label>Assessment<select value={assessmentKind} onChange={e=>setAssessmentKind(e.target.value)}><option>Biweekly</option></select></label><label>Week<input type="number" min={1} max={26} value={week} onChange={e=>setWeek(Math.max(1,Math.min(26,Number(e.target.value)||1)))}/></label>
+    <label>Assessment<select value={assessmentKind} onChange={e=>setAssessmentKind(e.target.value)}><option>Weekly</option><option>Revision</option></select></label><label>Week<input type="number" min={1} max={26} value={week} onChange={e=>setWeek(Math.max(1,Math.min(26,Number(e.target.value)||1)))}/></label>
     <label>Title<input maxLength={160} value={test.title||''} onChange={e=>setTest({...test,title:e.target.value})}/></label>
     <label>Scored objective questions<input type="number" min={5} max={60} value={test.questionCount} onChange={e=>setTest({...test,questionCount:Number(e.target.value)})}/></label>
     <label>Time (seconds)<input type="number" min={60} max={7200} value={test.timeSeconds} onChange={e=>setTest({...test,timeSeconds:Number(e.target.value)})}/></label>
@@ -180,7 +180,7 @@ export default function AdminManagement({users,words,onRefresh,onSettings}:{
     <label><input type="checkbox" checked={test.enabled!==false} onChange={e=>setTest({...test,enabled:e.target.checked})}/> Test enabled</label>
     <label><input type="checkbox" checked={test.requireAll===true} onChange={e=>setTest({...test,requireAll:e.target.checked})}/> Require answers for all questions</label><label><input type="checkbox" checked={test.showAnswers!==false} onChange={e=>setTest({...test,showAnswers:e.target.checked})}/> Show correct answers to learners</label>
    </div>
-   <button className="primary" disabled={busy} onClick={()=>void action({action:'testConfig',kind:'Biweekly',week,...test})}>Save test settings</button>
+   <button className="primary" disabled={busy} onClick={()=>void action({action:'testConfig',kind:assessmentKind,week,...test})}>Save test settings</button>
    <p className="muted">Use Admin Vocabulary → question editor to replace questions and specify their question type and whether answers are mandatory.</p>
   </section>
 

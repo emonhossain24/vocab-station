@@ -31,7 +31,7 @@ export async function POST(req:Request){
    const writingCount=5;const scoringVersion='gemini-writing-v1';if(!practice){const status=await aiStatus();if(!status.enabled||!status.configured)throw new AssessmentUnavailable('AI-scored tests need the administrator to connect Gemini first. You can view the sample mock while setup is pending.');}
    const objective=makeQuestions(pool,count);
    if(objective.length!==count)throw Error('This assessment needs '+count+' distinct objective questions in the selected vocabulary. Reduce the question count or add more vocabulary.');
-   const custom=await readRecord('custom-questions:'+week+(revision?':Revision':''),[]);
+   const custom=await readRecord('custom-questions:'+week,[]);
    const authored=custom.flatMap((item:any)=>{
     const w=pool.find(x=>wordKey(x)===item.wordId);
     if(!w)return [];

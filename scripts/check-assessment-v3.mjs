@@ -11,13 +11,13 @@ assert.equal(learning.unlockedWeek([{...passed(1),score:26}]),1);
 assert.equal(learning.unlockedWeek([passed(1)]),2);
 assert.equal(learning.unlockedWeek([passed(1),passed(2)]),2);
 assert.equal(learning.revisionDue([passed(1),passed(2)]),2);
-assert.equal(learning.unlockedWeek([passed(2),passed(4)]),6);
+assert.equal(learning.unlockedWeek([passed(1),passed(2),passed(2,'Revision'),passed(3),passed(4)]),4);assert.equal(learning.revisionDue([passed(1),passed(2),passed(2,'Revision'),passed(3),passed(4)]),4);
 assert.equal(learning.unlockedWeek([passed(1),passed(2),passed(2,'Revision')]),3);
 const request=d=>new Request('https://test.invalid/api/tests',{method:'POST',body:JSON.stringify(d),headers:{'Content-Type':'application/json'}});
 async function post(d){const response=await api.POST(request(d));return{status:response.status,...await response.json()};}
 assert.equal((await post({action:'start',week:2})).status,400);
 assert.equal((await post({action:'startRevision',week:2})).status,400);
-assert.equal((await post({action:'start',week:1})).status,400);const exam=await post({action:'practice',week:2});assert.equal(exam.status,200);assert.equal(exam.questions.length,35);assert.equal(exam.scoredQuestions,35);assert.equal(exam.questions.filter(q=>q.writing).length,5);
+assert.equal((await post({action:'start',week:1})).status,400);const exam=await post({action:'practice',week:1});assert.equal(exam.status,200);assert.equal(exam.questions.length,35);assert.equal(exam.scoredQuestions,35);assert.equal(exam.questions.filter(q=>q.writing).length,5);
 assert(exam.questions.every(q=>!('answer'in q)&&!('accepted'in q)&&!('explanation'in q)&&!('w'in q)));
 const internal=JSON.parse(records.get('exam:test-learner:'+exam.id));const answers=Object.fromEntries(internal.q.map((q,i)=>[i,q.writing?'She go to school with '+q.w.word+'.':q.answer]));
 const result=await post({action:'submit',id:exam.id,answers});assert.equal(result.status,200);assert.equal(result.total,35);assert.equal(result.score,35);assert.equal(result.passed,true);assert.equal(result.unlocksNextWeek,false);

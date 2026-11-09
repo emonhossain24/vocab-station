@@ -91,13 +91,13 @@ p{color:#6b7288}.sidebar .nav-item{color:#7f839b}.page-intro p{color:#7a7c95}.me
 /* Compact project promotions beside the learning progress heading. */
 .progress-heading{align-items:center;gap:32px}
 .progress-copy{flex:0 0 auto;min-width:310px}
-.project-promos{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px;max-width:650px;margin-left:auto;transform:translateX(-20px)}
+.project-promos{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px;max-width:650px;margin-left:auto;transform:translateX(-42px)}
 .project-promo{display:flex;align-items:center;gap:12px;min-width:0;padding:13px 15px;border:1px solid #e0e7d8;border-radius:11px;background:#fcfdf9;transition:border-color .16s,transform .16s,box-shadow .16s}
 .project-promo:hover{border-color:#b8c9aa;transform:translateY(-2px);box-shadow:0 7px 20px #243d2510}
 .project-promo>img{width:42px;height:42px;object-fit:cover;border-radius:11px;flex:0 0 42px}
-.project-promo>span{display:flex;flex-direction:column;min-width:0;gap:4px}
+.project-promo>span{display:flex;flex-direction:column;min-width:0;gap:5px}
 .project-promo strong{font:750 13px Manrope,'DM Sans',sans-serif;color:#344d39}
-.project-promo small{font-size:10px;line-height:1.45;color:#7c897d}
+.project-promo small{font-size:11px;line-height:1.55;color:#68796d;max-width:34ch}
 .project-promo em{display:inline-flex;align-items:center;gap:5px;margin-top:2px;font-style:normal;font-size:10px;font-weight:650;color:#58794c}
 .visa-promo>img{background:#102c40}
 .speak-promo>img{background:#d8dade}

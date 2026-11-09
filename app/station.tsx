@@ -1,7 +1,7 @@
 'use client';
 import SentenceFeedback from './sentence-feedback';
 import {useEffect,useRef,useState,useMemo} from 'react';
-import {LayoutDashboard,Layers,Bookmark,GraduationCap,Settings,ArrowRight,ChevronLeft,ChevronRight,Volume2,Check,Clock,Leaf,Menu,X,ShieldCheck,Lock,Search,Plus,Pencil,Trash2,BarChart3,Flame,Keyboard} from 'lucide-react';
+import {LayoutDashboard,Layers,Bookmark,GraduationCap,Settings,ArrowRight,ChevronLeft,ChevronRight,Volume2,Check,Leaf,Menu,X,ShieldCheck,Lock,Search,Plus,Pencil,Trash2,BarChart3,Flame,Keyboard} from 'lucide-react';
 import {seed,assignedDay,wordKey,type Word} from './words';
 import {makeQuestions,correctAnswer,studyWindow} from './assessment';
 import {unlockedWeek,revisionDue,wordsForWeek,difficulty,examplesFor,TEST_SECONDS,PASS_PERCENT} from './learning';

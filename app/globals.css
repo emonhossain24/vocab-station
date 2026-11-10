@@ -124,3 +124,16 @@ p{color:#6b7288}.sidebar .nav-item{color:#7f839b}.page-intro p{color:#7a7c95}.me
 .project-promo small{white-space:normal!important;overflow:visible!important;display:block!important}
 @media(max-width:1100px){.progress-heading{flex-flow:row nowrap!important;align-items:center!important}.progress-copy{flex-flow:row nowrap!important;min-width:max-content!important}.project-promos{grid-template-columns:repeat(4,minmax(185px,1fr))!important;min-width:780px!important;width:auto!important;max-width:none!important;margin:0!important;transform:none!important}}
 @media(max-width:650px){.progress-heading{flex-flow:row nowrap!important;gap:12px!important}.progress-copy{flex-flow:row nowrap!important;min-width:max-content!important}.project-promos{grid-template-columns:repeat(4,minmax(185px,1fr))!important;min-width:780px!important;overflow:visible!important}.project-promo{flex-direction:row!important;align-items:flex-start!important}.project-promo>img{width:38px!important;height:38px!important;flex-basis:38px!important}}
+
+
+/* Separate the learning text from the single horizontal promotions row. */
+.progress-heading{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:18px!important;width:100%;overflow:visible!important;padding:0!important}
+.progress-copy{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:0!important;flex:none!important;min-width:0!important;width:100%!important;white-space:normal!important}
+.progress-copy .eyebrow{display:block!important;white-space:normal!important;margin:0 0 8px!important;font-size:12px!important}
+.progress-copy h1{display:block!important;white-space:normal!important;margin:0 0 8px!important;font-size:31px!important;line-height:1.25!important}
+.progress-copy p{display:block!important;white-space:normal!important;margin:0!important;font-size:13px!important}
+.project-promos{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-auto-flow:row!important;flex:none!important;gap:10px!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;transform:none!important;overflow:visible!important}
+.project-promo{min-width:0!important;height:100%;padding:14px 12px!important}
+.project-promo small{white-space:normal!important;overflow:visible!important;display:block!important}
+@media(max-width:1100px){.progress-heading{flex-direction:column!important;align-items:stretch!important;gap:16px!important}.progress-copy{flex-direction:column!important;min-width:0!important}.project-promos{grid-template-columns:repeat(4,minmax(0,1fr))!important;width:100%!important;min-width:0!important;max-width:none!important;margin:0!important;transform:none!important}}
+@media(max-width:650px){.progress-heading{flex-direction:column!important;gap:14px!important}.progress-copy{flex-direction:column!important;min-width:0!important}.project-promos{grid-template-columns:repeat(4,minmax(185px,1fr))!important;grid-auto-flow:column!important;overflow-x:auto!important;overflow-y:hidden!important;padding-bottom:5px}.project-promo{flex-direction:column!important;align-items:flex-start!important}.project-promo>img{width:38px!important;height:38px!important;flex-basis:38px!important}}

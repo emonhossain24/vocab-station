@@ -157,3 +157,13 @@ p{color:#6b7288}.sidebar .nav-item{color:#7f839b}.page-intro p{color:#7a7c95}.me
 .progress-top-row .target-date{flex:0 0 auto;margin-left:auto;min-width:190px}
 .progress-heading>.project-promos{width:100%!important;margin:0!important;transform:none!important}
 @media(max-width:650px){.progress-top-row{align-items:flex-start;gap:12px}.progress-top-row .target-date{min-width:150px;padding:10px 11px;font-size:11px}.progress-top-row .progress-copy h1{font-size:25px!important}.progress-heading>.project-promos{grid-template-columns:repeat(4,minmax(185px,1fr))!important;overflow-x:auto!important}}
+
+
+/* Keep target-date panel on the right of the three-line progress text. */
+.progress-heading{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:18px!important}
+.progress-heading>.progress-top-row{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:space-between!important;gap:28px!important;width:100%!important;min-width:0!important}
+.progress-heading>.progress-top-row>.progress-copy{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;flex:1 1 auto!important;min-width:0!important;width:auto!important;white-space:normal!important;gap:0!important}
+.progress-heading>.progress-top-row>.progress-copy>.eyebrow,.progress-heading>.progress-top-row>.progress-copy>h1,.progress-heading>.progress-top-row>.progress-copy>p{display:block!important;white-space:normal!important;flex:none!important;margin-left:0!important}
+.progress-heading>.progress-top-row>.target-date{display:flex!important;flex:0 0 auto!important;width:auto!important;min-width:190px!important;max-width:260px!important;margin:0 0 0 auto!important;align-self:center!important}
+.progress-heading>.project-promos{display:grid!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;transform:none!important}
+@media(max-width:650px){.progress-heading>.progress-top-row{gap:10px!important;align-items:center!important}.progress-heading>.progress-top-row>.target-date{min-width:130px!important;max-width:160px!important;padding:9px 10px!important}.progress-heading>.progress-top-row>.progress-copy>h1{font-size:24px!important}}

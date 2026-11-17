@@ -5,7 +5,6 @@ export default function AdminAISettings(){
  useEffect(()=>{fetch('/api/admin/ai',{cache:'no-store'}).then(async r=>{const d:any=await r.json();if(!r.ok)throw Error(d.error);setStatus(d);setModel(d.model);setEnabled(d.enabled)}).catch(e=>setError(e.message))},[]);
  async function action(kind:'save'|'test',removeKey=false){
   setBusy(true);setError('');setMessage('');setConnected(false);
-  // Test always saves edited fields first, so it cannot accidentally test an old key/model.
   const saveFirst=!removeKey&&(kind==='save'||!!key.trim()||model!==status?.model||enabled!==status?.enabled);
   try{
    const response=await fetch('/api/admin/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(saveFirst?{action:'save-test',apiKey:key,model,enabled}:{action:kind,apiKey:key,model,enabled,removeKey})});
@@ -15,6 +14,7 @@ export default function AdminAISettings(){
    }
    if(!response.ok)throw Error(d.error||`Connection request failed (${response.status}).`);
    if(d.ok){setStatus((previous:any)=>({...previous,model:d.model}));setModel(d.model);setConnected(true);setMessage(d.recoveredFrom?d.message:'API key saved / available. Gemini connection and sentence assessment verified successfully.');}
+   else if(d.saved&&d.error){setError('Key saved successfully, but Gemini connection verification failed: '+d.error);}
   }catch(e:any){setError(e.message||'Could not connect. Please retry.')}finally{setBusy(false)}
  }
  async function loadModels(){setBusy(true);setError('');setMessage('');try{const r=await fetch('/api/admin/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'models',apiKey:key,model,enabled})});const d:any=await r.json();if(!r.ok)throw Error(d.error||'Could not load models');setModels(d.models);setStatus(d);setKey('');setMessage(d.models.length?'Choose a model from your Google project, then Save API key & connect.':'No text-generation models are available for this key. Check project access in Google AI Studio.')}catch(e:any){setError(e.message)}finally{setBusy(false)}}

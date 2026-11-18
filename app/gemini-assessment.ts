@@ -59,24 +59,23 @@ async function generateWithRecovery(key:string,primaryModel:string,payloadFor:(m
    if(attempt===0)await wait(retryDelay(response,attempt));
   }
  }
- // Discover currently supported Flash models only after the selected model has exhausted its retries.
- // This avoids depending on retired model IDs and avoids an extra models-list request on healthy calls.
- try{
-  const live=await availableAIModels();
-  const liveFlash=live.filter(m=>m.id!==primaryModel&&/flash/i.test(m.id)&&!/preview|exp|image|audio|tts/i.test(m.id)).map(m=>m.id);
-  const candidates=[...FALLBACK_GEMINI_MODELS,...liveFlash].filter((m,i,a)=>m!==primaryModel&&a.indexOf(m)===i);
-  for(const model of candidates){
-   for(let attempt=0;attempt<2;attempt++){
-    let response:Response;
-    try{response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},signal:AbortSignal.timeout(15000),body:JSON.stringify(payloadFor(model))});}
-    catch{if(attempt===0){await wait(500);continue;}break;}
-    if(response.ok)return{response,model};
-    lastResponse=response;
-    if(!RETRYABLE_PROVIDER_STATUSES.has(response.status))continue;
-    if(attempt===0)await wait(retryDelay(response,attempt));
-   }
+ // Try the explicitly requested fallback IDs, then discover any currently supported Flash models.
+ // Model discovery happens only after the primary model has exhausted its retries.
+ let liveFlash:string[]=[];
+ try{liveFlash=(await availableAIModels()).filter(m=>m.id!==primaryModel&&/flash/i.test(m.id)&&!/preview|exp|image|audio|tts/i.test(m.id)).map(m=>m.id);}catch{/* Keep trying known candidates if model discovery is rate-limited. */}
+ const candidates=[...FALLBACK_GEMINI_MODELS,...liveFlash].filter((m,i,a)=>m!==primaryModel&&a.indexOf(m)===i);
+ for(const model of candidates){
+  for(let attempt=0;attempt<2;attempt++){
+   let response:Response;
+   try{response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},signal:AbortSignal.timeout(15000),body:JSON.stringify(payloadFor(model))});}
+   catch{if(attempt===0){await wait(500);continue;}break;}
+   if(response.ok)return{response,model};
+   lastResponse=response;
+   if(response.status===404)break;
+   if(!RETRYABLE_PROVIDER_STATUSES.has(response.status))throw await providerError(response);
+   if(attempt===0)await wait(retryDelay(response,attempt));
   }
- }catch(error){if(error instanceof AssessmentUnavailable&&error.providerStatus!==404)throw error;}
+ }
  if(lastResponse)throw await providerError(lastResponse);
  throw new AssessmentUnavailable('Google AI did not respond after retrying the configured Gemini models. Your answers are preserved; please retry.');
 }

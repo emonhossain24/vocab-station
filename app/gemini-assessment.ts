@@ -65,7 +65,7 @@ async function generateWithRecovery(key:string,primaryModel:string,payloadFor:(m
  // Model discovery happens only after the primary model has exhausted its retries.
  let liveFlash:string[]=[];
  try{liveFlash=(await availableAIModels()).filter(m=>m.id!==primaryModel&&/flash/i.test(m.id)&&!/preview|exp|image|audio|tts/i.test(m.id)).map(m=>m.id);}catch{/* Use known candidates if model discovery is rate-limited. */}
- const availablePreferred=FALLBACK_GEMINI_MODELS.filter(m=>liveFlash.includes(m));
+ const availablePreferred:string[]=FALLBACK_GEMINI_MODELS.filter(m=>liveFlash.includes(m));
  const candidates=(liveFlash.length?[...availablePreferred,...liveFlash.filter(m=>!availablePreferred.includes(m))]:[...FALLBACK_GEMINI_MODELS]).filter((m,i,a)=>m!==primaryModel&&a.indexOf(m)===i).slice(0,3);
  for(const model of candidates){
   for(let attempt=0;attempt<2;attempt++){

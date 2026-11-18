@@ -40,14 +40,16 @@ function retryDelay(response:Response,attempt:number){
 }
 async function generateWithRecovery(key:string,primaryModel:string,payloadFor:(model:string)=>any){
  const models=[primaryModel];
+ const deadline=Date.now()+45000;
  let lastResponse:Response|undefined;
  for(const model of models){
   for(let attempt=0;attempt<2;attempt++){
+   const remaining=deadline-Date.now();if(remaining<=0)break;
    let response:Response;
    try{
     response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{
      method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
-     signal:AbortSignal.timeout(15000),body:JSON.stringify(payloadFor(model))
+     signal:AbortSignal.timeout(Math.min(10000,remaining)),body:JSON.stringify(payloadFor(model))
     });
    }catch{
     if(attempt===0){await wait(500);continue;}
@@ -62,12 +64,14 @@ async function generateWithRecovery(key:string,primaryModel:string,payloadFor:(m
  // Try the explicitly requested fallback IDs, then discover any currently supported Flash models.
  // Model discovery happens only after the primary model has exhausted its retries.
  let liveFlash:string[]=[];
- try{liveFlash=(await availableAIModels()).filter(m=>m.id!==primaryModel&&/flash/i.test(m.id)&&!/preview|exp|image|audio|tts/i.test(m.id)).map(m=>m.id);}catch{/* Keep trying known candidates if model discovery is rate-limited. */}
- const candidates=[...FALLBACK_GEMINI_MODELS,...liveFlash].filter((m,i,a)=>m!==primaryModel&&a.indexOf(m)===i);
+ try{liveFlash=(await availableAIModels()).filter(m=>m.id!==primaryModel&&/flash/i.test(m.id)&&!/preview|exp|image|audio|tts/i.test(m.id)).map(m=>m.id);}catch{/* Use known candidates if model discovery is rate-limited. */}
+ const availablePreferred=FALLBACK_GEMINI_MODELS.filter(m=>liveFlash.includes(m));
+ const candidates=(liveFlash.length?[...availablePreferred,...liveFlash.filter(m=>!availablePreferred.includes(m))]:[...FALLBACK_GEMINI_MODELS]).filter((m,i,a)=>m!==primaryModel&&a.indexOf(m)===i).slice(0,3);
  for(const model of candidates){
   for(let attempt=0;attempt<2;attempt++){
+   const remaining=deadline-Date.now();if(remaining<=0)break;
    let response:Response;
-   try{response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},signal:AbortSignal.timeout(15000),body:JSON.stringify(payloadFor(model))});}
+   try{response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},signal:AbortSignal.timeout(Math.min(10000,remaining)),body:JSON.stringify(payloadFor(model))});}
    catch{if(attempt===0){await wait(500);continue;}break;}
    if(response.ok)return{response,model};
    lastResponse=response;

@@ -22,6 +22,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # Bootstrap pnpm before setup-node; Corepack below then pins the repo's exact pnpm version.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

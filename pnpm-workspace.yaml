@@ -1,4 +1,10 @@
 # Copied Sites are standalone projects and cannot inherit the monorepo policy.
+# Temporary, narrowly scoped exception: upstream has not published a patched picomatch release.
+# Remove this GHSA as soon as the dependency tree can use a fixed picomatch version.
+audit:
+  level: high
+  ignore:
+    - GHSA-fc5q-39xc-vjpf
 minimumReleaseAge: 10080
 minimumReleaseAgeIgnoreMissingTime: false
 trustLockfile: false

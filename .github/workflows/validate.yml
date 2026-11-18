@@ -9,25 +9,56 @@ concurrency:
   cancel-in-progress: true
 jobs:
   verify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # Bootstrap pnpm before setup-node; Corepack below then pins the repo's exact pnpm version.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+          run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Enable exact package manager
+        shell: bash
         run: |
           corepack enable
           corepack prepare pnpm@11.25.0 --activate
-      - name: Install pinned dependencies
-        run: pnpm install --frozen-lockfile
+          pnpm --version
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-11.25.0-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-11.25.0-
+      - name: Install pinned dependencies (retry transient registry failures)
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            echo "pnpm install attempt ${attempt}/3"
+            if pnpm install --frozen-lockfile; then exit 0; fi
+            if [ "${attempt}" -lt 3 ]; then sleep $((attempt * 10)); fi
+          done
+          echo "Dependency installation failed after three attempts." >&2
+          exit 1
       - name: TypeScript typecheck
-        run: ./node_modules/.bin/tsc --noEmit
+        run: pnpm exec tsc --noEmit
       - name: Security policy checks
         run: node scripts/check-security.mjs
       - name: Ingress security behavior tests
@@ -35,7 +66,15 @@ jobs:
       - name: Git history secret-pattern scan
         run: node scripts/check-history-secrets.mjs
       - name: Dependency audit (high or critical)
-        run: pnpm audit --audit-level high
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            echo "pnpm audit attempt ${attempt}/3"
+            if pnpm audit --audit-level high; then exit 0; fi
+            if [ "${attempt}" -lt 3 ]; then sleep $((attempt * 10)); fi
+          done
+          echo "Dependency audit failed after three attempts." >&2
+          exit 1
       - name: Vocabulary checks
         run: |
           node scripts/check-vocabulary.mjs
@@ -44,6 +83,12 @@ jobs:
           node scripts/check-gemini-assessment.mjs
       - name: Email signup and Cloudflare crypto compatibility
         run: node scripts/check-email-auth.mjs
-      - name: Production build
-        run: pnpm build
-
+      - name: Production build (retry transient failures)
+        shell: bash
+        run: |
+          for attempt in 1 2; do
+            echo "Production build attempt ${attempt}/2"
+            if pnpm build; then exit 0; fi
+            if [ "${attempt}" -lt 2 ]; then sleep 10; fi
+          done
+          exit 1

@@ -7,7 +7,8 @@ const root=process.cwd(),admin=load(root+'/app/api/admin/ai/route.ts'),api=load(
 const request=d=>new Request('https://example.invalid/api/tests',{method:'POST',body:JSON.stringify(d)});async function post(d){const r=await api.POST(request(d));return{status:r.status,...await r.json()};}
 user=null;assert.equal((await admin.GET()).status,401);user={userId:'learner',email:'learner@example.invalid'};assert.equal((await admin.GET()).status,403);user={userId:'google:owner',email:'owner@example.invalid'};
 let r=await admin.POST(request({action:'save',apiKey:'fixture-key-for-secure-gemini-testing',model:'gemini-2.5-flash',enabled:true}));assert.equal(r.status,200);assert(!(await r.text()).includes('fixture-key'));assert(!records.get('private-gemini-settings-v1').includes('fixture-key'));assert.equal((await admin.POST(request({action:'test'}))).status,200);assert.equal((await admin.POST(request({action:'save',model:'https://evil.invalid'}))).status,400);
-// Saving + verification keeps the key on provider failures and never exposes provider text.
+// save-test persists valid settings and returns HTTP 200 with connected:false when provider verification fails.
+// Invalid model IDs are rejected separately with HTTP 400 (see validation assertion above).
 behaviour='invalid-key';r=await admin.POST(request({action:'save-test',model:'gemini-2.5-flash',enabled:true}));assert.equal(r.status,200);let diagnostic=await r.json();assert(diagnostic.saved&&diagnostic.configured&&!diagnostic.connected);assert.match(diagnostic.error,/Google rejected the API key/);assert(!diagnostic.error.includes('fixture-key'));
 behaviour='missing-model';r=await admin.POST(request({action:'test'}));assert.match((await r.json()).error,/Google returned 404/);
 // A key deliberately saved in the profile must take precedence over an old environment key.

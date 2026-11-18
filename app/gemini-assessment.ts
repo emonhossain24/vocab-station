@@ -110,7 +110,8 @@ export async function testAIConnection(){
   if(!(e instanceof AssessmentUnavailable)||e.providerStatus!==404)throw e;
   // Only explicit admin connection tests repair an unavailable model; exam grading never switches silently.
   const models=await availableAIModels();
-  const candidates=models.filter(m=>m.id!==original).sort((a,b)=>Number(!a.id.includes('flash'))-Number(!b.id.includes('flash'))||Number(/preview|exp/.test(a.id))-Number(/preview|exp/.test(b.id))||b.id.localeCompare(a.id)).slice(0,3);
+  const preferred:string[]=[...FALLBACK_GEMINI_MODELS];
+  const candidates=models.filter(m=>m.id!==original).sort((a,b)=>{const ai=preferred.indexOf(a.id),bi=preferred.indexOf(b.id);return(ai<0?preferred.length:ai)-(bi<0?preferred.length:bi)||Number(!a.id.includes('flash'))-Number(!b.id.includes('flash'))||Number(/preview|exp/.test(a.id))-Number(/preview|exp/.test(b.id))||b.id.localeCompare(a.id)}).slice(0,3);
   for(const candidate of candidates){try{const result=await probe(candidate.id);const c=await readRecord(CONFIG,{enabled:true,model:original}) as Config;await writeRecord(CONFIG,{...c,model:candidate.id,updatedAt:new Date().toISOString()});return{...result,recoveredFrom:original,message:'Connection verified. Unavailable model '+original+' replaced with '+candidate.id+'.'};}catch(error){if(!(error instanceof AssessmentUnavailable)||error.providerStatus!==404)throw error;}}
   throw new AssessmentUnavailable('Google returned 404 for the selected model and available alternatives. Your key is saved. Check model access in Google AI Studio; no assessment result has been fabricated.',404);
  }

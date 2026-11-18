@@ -105,7 +105,7 @@ export async function availableAIModels(){
 }
 export async function testAIConnection(){
  const original=(await aiStatus()).model;
- const probe=async(model:string)=>{const results=await assessWriting([{id:'connection-test',text:'This is a clear English sentence.'}],model);return{ok:true,model,message:'Gemini connection and structured assessment verified.',engine:results[0].engine}};
+ const probe=async(model:string)=>{const results=await assessWriting([{id:'connection-test',text:'This is a clear English sentence.'}],model);const actualModel=results[0].engine.split(' · ').pop()||model;return{ok:true,model:actualModel,message:'Gemini connection and structured assessment verified.',engine:results[0].engine}};
  try{return await probe(original)}catch(e){
   if(!(e instanceof AssessmentUnavailable)||e.providerStatus!==404)throw e;
   // Only explicit admin connection tests repair an unavailable model; exam grading never switches silently.

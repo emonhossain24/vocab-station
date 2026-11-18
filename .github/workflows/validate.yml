@@ -25,14 +25,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
       - name: Enable exact package manager
         shell: bash
         run: |
           corepack enable
           corepack prepare pnpm@11.25.0 --activate
           pnpm --version
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        shell: bash
+        run: echo "path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-11.25.0-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-11.25.0-
       - name: Install pinned dependencies (retry transient registry failures)
         shell: bash
         run: |

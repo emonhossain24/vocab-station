@@ -30,7 +30,7 @@ async function providerError(response:Response){
  return new AssessmentUnavailable(`Google AI (${response.status}): ${detail} Your saved key has been kept; no exam score was finalised.`,response.status);
 }
 export type WritingInput={id:string;text:string;word?:Word};
-const FALLBACK_GEMINI_MODELS=['gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-3.8-flash'] as const;
+const FALLBACK_GEMINI_MODELS=['gemini-2.5-flash-lite','gemini-2.0-flash','gemini-1.5-flash'] as const;
 const RETRYABLE_PROVIDER_STATUSES=new Set([429,503]);
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 function retryDelay(response:Response,attempt:number){
@@ -39,7 +39,7 @@ function retryDelay(response:Response,attempt:number){
  return Math.min(1500,500*2**attempt);
 }
 async function generateWithRecovery(key:string,primaryModel:string,payloadFor:(model:string)=>any){
- const models=[...new Set([primaryModel,...FALLBACK_GEMINI_MODELS.filter(m=>m!==primaryModel)])];
+ const models=[primaryModel];
  let lastResponse:Response|undefined;
  for(const model of models){
   for(let attempt=0;attempt<2;attempt++){
@@ -59,6 +59,24 @@ async function generateWithRecovery(key:string,primaryModel:string,payloadFor:(m
    if(attempt===0)await wait(retryDelay(response,attempt));
   }
  }
+ // Discover currently supported Flash models only after the selected model has exhausted its retries.
+ // This avoids depending on retired model IDs and avoids an extra models-list request on healthy calls.
+ try{
+  const live=await availableAIModels();
+  const liveFlash=live.filter(m=>m.id!==primaryModel&&/flash/i.test(m.id)&&!/preview|exp|image|audio|tts/i.test(m.id)).map(m=>m.id);
+  const candidates=[...FALLBACK_GEMINI_MODELS,...liveFlash].filter((m,i,a)=>m!==primaryModel&&a.indexOf(m)===i);
+  for(const model of candidates){
+   for(let attempt=0;attempt<2;attempt++){
+    let response:Response;
+    try{response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},signal:AbortSignal.timeout(15000),body:JSON.stringify(payloadFor(model))});}
+    catch{if(attempt===0){await wait(500);continue;}break;}
+    if(response.ok)return{response,model};
+    lastResponse=response;
+    if(!RETRYABLE_PROVIDER_STATUSES.has(response.status))continue;
+    if(attempt===0)await wait(retryDelay(response,attempt));
+   }
+  }
+ }catch(error){if(error instanceof AssessmentUnavailable&&error.providerStatus!==404)throw error;}
  if(lastResponse)throw await providerError(lastResponse);
  throw new AssessmentUnavailable('Google AI did not respond after retrying the configured Gemini models. Your answers are preserved; please retry.');
 }
